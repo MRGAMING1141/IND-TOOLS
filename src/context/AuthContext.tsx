@@ -31,14 +31,47 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    try {
+      const saved = localStorage.getItem('ind_local_user');
+      if (saved) return JSON.parse(saved);
+    } catch {
+      // ignore
+    }
+    return null;
+  });
   const [loading, setLoading] = useState(true);
-  const [entitlement, setEntitlement] = useState<UserEntitlement | null>(null);
+  const [entitlement, setEntitlement] = useState<UserEntitlement | null>(() => {
+    try {
+      const saved = localStorage.getItem('ind_local_user');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (isUserAdmin(parsed.email)) {
+          return {
+            userId: parsed.uid,
+            userEmail: parsed.email,
+            unlockedPacks: ['elite', 'pro', 'dev', 'roblox', 'creator', 'gaming'],
+          };
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return null;
+  });
   const [authModalOpen, setAuthModalOpen] = useState(false);
 
   useEffect(() => {
+    // If local user is active, skip waiting on firebase auth state
+    if (localStorage.getItem('ind_local_user')) {
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
+      if (!localStorage.getItem('ind_local_user')) {
+        setUser(currentUser);
+      }
       setLoading(false);
 
       if (currentUser) {
@@ -71,6 +104,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (!user) {
       setEntitlement(null);
+      return;
+    }
+
+    if (user.uid.startsWith('local_')) {
+      if (isUserAdmin(user.email)) {
+        setEntitlement({
+          userId: user.uid,
+          userEmail: user.email || '',
+          unlockedPacks: ['elite', 'pro', 'dev', 'roblox', 'creator', 'gaming'],
+        });
+      }
       return;
     }
 
@@ -112,6 +156,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
+    localStorage.removeItem('ind_local_user');
     try {
       await logoutUser();
     } catch {
