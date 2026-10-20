@@ -16,6 +16,8 @@ interface AuthContextType {
   hasAccessToPack: (pack?: PackId) => boolean;
   signIn: () => Promise<User | undefined>;
   signOut: () => Promise<void>;
+  loginAsDemoAdmin: () => void;
+  loginAsGuest: () => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -28,6 +30,8 @@ const AuthContext = createContext<AuthContextType>({
   hasAccessToPack: () => false,
   signIn: async () => undefined,
   signOut: async () => {},
+  loginAsDemoAdmin: () => {},
+  loginAsGuest: () => {},
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -38,7 +42,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
+      if (!user && currentUser) {
+        setUser(currentUser);
+      }
       setLoading(false);
 
       if (currentUser) {
@@ -71,6 +77,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (!user) {
       setEntitlement(null);
+      return;
+    }
+
+    // If mock user, skip firestore snapshot listener
+    if (user.uid.startsWith('demo_')) {
       return;
     }
 
@@ -112,9 +123,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
-    await logoutUser();
+    try {
+      await logoutUser();
+    } catch {
+      // ignore
+    }
     setUser(null);
     setEntitlement(null);
+  };
+
+  const loginAsDemoAdmin = () => {
+    const mockAdminUser = {
+      uid: 'demo_admin_uid_999',
+      email: 'janvirajpurohit491@gmail.com',
+      displayName: 'IND HUB Demo Admin',
+      photoURL: '',
+      emailVerified: true,
+      isAnonymous: false,
+    } as unknown as User;
+    setUser(mockAdminUser);
+    setEntitlement({
+      userId: 'demo_admin_uid_999',
+      userEmail: 'janvirajpurohit491@gmail.com',
+      unlockedPacks: ['elite', 'pro', 'dev', 'roblox', 'creator', 'gaming'],
+    });
+    setAuthModalOpen(false);
+  };
+
+  const loginAsGuest = () => {
+    const mockGuestUser = {
+      uid: 'demo_guest_uid_111',
+      email: 'guest@indhub.tools',
+      displayName: 'IND HUB Guest',
+      photoURL: '',
+      emailVerified: true,
+      isAnonymous: false,
+    } as unknown as User;
+    setUser(mockGuestUser);
+    setEntitlement({
+      userId: 'demo_guest_uid_111',
+      userEmail: 'guest@indhub.tools',
+      unlockedPacks: [],
+    });
+    setAuthModalOpen(false);
   };
 
   return (
@@ -129,6 +180,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         hasAccessToPack,
         signIn,
         signOut,
+        loginAsDemoAdmin,
+        loginAsGuest,
       }}
     >
       {children}

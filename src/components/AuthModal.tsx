@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { loginWithGoogle, loginWithEmail, registerWithEmail } from '../firebase';
-import { X, Mail, Lock, ShieldCheck, Sparkles, ArrowRight, Chrome, AlertCircle } from 'lucide-react';
+import { loginWithEmail, registerWithEmail } from '../firebase';
+import { X, Mail, Lock, ShieldCheck, ArrowRight, AlertCircle, Zap, UserCheck } from 'lucide-react';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -9,7 +9,7 @@ interface AuthModalProps {
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
-  const { user } = useAuth();
+  const { user, loginAsDemoAdmin, loginAsGuest } = useAuth();
   const [mode, setMode] = useState<'signin' | 'register'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -34,19 +34,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
-  const handleGoogleLogin = async () => {
-    setError('');
-    setLoading(true);
-    try {
-      await loginWithGoogle();
-      onClose();
-    } catch (err: any) {
-      setError(err?.message || 'Google sign-in failed. Please try email login.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -63,7 +50,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       }
       onClose();
     } catch (err: any) {
-      setError(err?.message || 'Authentication failed. Please check your credentials.');
+      setError(
+        err?.message ||
+          'Authentication failed (Email/Password auth may not be enabled in Firebase console). Use Instant Demo Mode below!'
+      );
     } finally {
       setLoading(false);
     }
@@ -78,16 +68,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       role="dialog"
       aria-modal="true"
     >
-      <div className="bg-white/95 backdrop-blur-2xl border border-slate-200/90 rounded-3xl max-w-md w-full shadow-2xl overflow-hidden flex flex-col">
+      <div className="bg-white/95 backdrop-blur-2xl border border-slate-200/90 rounded-3xl max-w-md w-full shadow-2xl overflow-hidden flex flex-col max-h-[92vh] overflow-y-auto">
         {/* Header */}
-        <div className="px-6 py-4.5 border-b border-slate-200/80 flex items-center justify-between bg-slate-50/90">
+        <div className="px-6 py-4.5 border-b border-slate-200/80 flex items-center justify-between bg-slate-50/90 shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center shadow-xs">
               <ShieldCheck className="w-4 h-4" />
             </div>
             <div>
               <h3 className="text-sm font-bold text-slate-900 tracking-tight">IND HUB Authentication</h3>
-              <p className="text-[11px] text-slate-500">Secure Cloud Sync & Pack Entitlements</p>
+              <p className="text-[11px] text-slate-500">Instant Access & Cloud Sync</p>
             </div>
           </div>
 
@@ -101,28 +91,41 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         </div>
 
         {/* Body */}
-        <div className="p-6 space-y-5">
+        <div className="p-6 space-y-4">
           {error && (
-            <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-start gap-2.5">
-              <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+            <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-start gap-2.5">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
           )}
 
-          {/* Google Quick Button */}
-          <button
-            onClick={handleGoogleLogin}
-            disabled={loading}
-            className="w-full py-3 px-4 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 text-xs font-bold flex items-center justify-center gap-3 transition-all shadow-xs cursor-pointer disabled:opacity-50"
-          >
-            <Chrome className="w-4 h-4 text-blue-600" />
-            <span>Continue with Google Account</span>
-          </button>
+          {/* Instant Bypass Buttons for zero-config testing */}
+          <div className="space-y-2 p-3.5 rounded-2xl bg-blue-50/80 border border-blue-200">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-blue-900 mb-2">
+              ⚡ Instant Bypass (No Setup Required)
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <button
+                onClick={loginAsDemoAdmin}
+                className="py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer"
+              >
+                <Zap className="w-3.5 h-3.5 text-amber-300" />
+                <span>Demo Admin</span>
+              </button>
+              <button
+                onClick={loginAsGuest}
+                className="py-2.5 px-3 rounded-xl bg-white hover:bg-slate-100 border border-blue-300 text-blue-800 text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer"
+              >
+                <UserCheck className="w-3.5 h-3.5" />
+                <span>Guest Mode</span>
+              </button>
+            </div>
+          </div>
 
-          <div className="relative flex items-center justify-center">
+          <div className="relative flex items-center justify-center my-2">
             <div className="border-t border-slate-200 w-full absolute"></div>
             <span className="bg-white px-3 relative text-[11px] uppercase tracking-wider font-bold text-slate-400">
-              Or with Email
+              Or Firebase Email Login
             </span>
           </div>
 
@@ -147,9 +150,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
           </div>
 
           {/* Email / Password Form */}
-          <form onSubmit={handleEmailSubmit} className="space-y-4">
+          <form onSubmit={handleEmailSubmit} className="space-y-3.5">
             <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">
                 Email Address
               </label>
               <div className="relative">
@@ -166,7 +169,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             </div>
 
             <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">
                 Password
               </label>
               <div className="relative">
@@ -180,9 +183,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                 />
               </div>
-              {mode === 'register' && (
-                <p className="text-[10px] text-slate-500 mt-1">Must be at least 6 characters long.</p>
-              )}
             </div>
 
             <button
@@ -190,15 +190,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
               disabled={loading}
               className="w-full py-3 rounded-xl clay-button-primary text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-sm disabled:opacity-50"
             >
-              <span>{loading ? 'Processing...' : mode === 'signin' ? 'Sign In to IND HUB' : 'Register Account'}</span>
+              <span>{loading ? 'Processing...' : mode === 'signin' ? 'Sign In with Email' : 'Register Account'}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </form>
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-200 text-center text-[11px] text-slate-500">
-          Secure Firebase Authentication & Firestore Sync
+        <div className="px-6 py-3 bg-slate-50 border-t border-slate-200 text-center text-[11px] text-slate-500 shrink-0">
+          IND HUB Secure Authentication System
         </div>
       </div>
     </div>
