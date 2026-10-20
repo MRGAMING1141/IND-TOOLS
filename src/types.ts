@@ -106,3 +106,15 @@ export interface CartItem {
   tagline: string;
   isBundle?: boolean;
 }
+
+export interface UserProfile {
+  uid: string;
+  specialUid: string;
+  email: string;
+  displayName: string;
+  photoURL?: string;
+  lastLoginAt?: any;
+  lastLoginMillis?: number;
+  createdAt?: any;
+  updatedAt?: any;
+}

@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { Tool } from '../types';
 import { TOOLS } from '../data/toolsData';
+import { WikiFAQSection } from './WikiFAQSection';
 
 interface WikiProps {
   onOpenTool?: (tool: Tool) => void;
@@ -203,8 +204,11 @@ export const Wiki: React.FC<WikiProps> = ({
         ))}
       </div>
 
-      {/* Two Column Layout: Navigation Sidebar + Article Reader */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      {/* Conditional: FAQ Section or Two Column Article Reader */}
+      {selectedCategory === 'faq' ? (
+        <WikiFAQSection onOpenShop={onOpenShop} onOpenSupport={onOpenSupport} />
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Column: Article List */}
         <div className="lg:col-span-4 space-y-3">
           <div className="flex items-center justify-between text-xs text-slate-500 px-1 mb-1">
@@ -440,6 +444,7 @@ export const Wiki: React.FC<WikiProps> = ({
           )}
         </div>
       </div>
+    )}
     </div>
   );
 };

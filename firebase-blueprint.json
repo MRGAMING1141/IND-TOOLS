@@ -56,9 +56,29 @@
         "updatedAt": { "type": "string", "format": "date-time" }
       },
       "required": ["userId", "userEmail", "subject", "category", "message", "status", "createdAt"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile metadata including Special UID and last login tracking",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "specialUid": { "type": "string", "maxLength": 64 },
+        "email": { "type": "string", "maxLength": 256 },
+        "displayName": { "type": "string", "maxLength": 128 },
+        "photoURL": { "type": "string", "maxLength": 512 },
+        "lastLoginAt": { "type": "string", "format": "date-time" },
+        "lastLoginMillis": { "type": "number" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "specialUid", "email"]
     }
   },
   "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User account profiles with special UIDs and activity stamps"
+    },
     "/orders/{orderId}": {
       "schema": { "$ref": "#/entities/Order" },
       "description": "Collection of customer purchase orders"

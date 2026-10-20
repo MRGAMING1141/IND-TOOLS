@@ -1,5 +1,14 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
+  signOut,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+} from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
@@ -80,6 +89,17 @@ async function testConnection() {
 }
 testConnection();
 
+// Check redirect result on load for redirect-based auth flow
+getRedirectResult(auth)
+  .then((result) => {
+    if (result?.user) {
+      console.log('Successfully signed in via redirect:', result.user.email);
+    }
+  })
+  .catch((err) => {
+    console.warn('Redirect login result error:', err);
+  });
+
 export async function loginWithGoogle() {
   try {
     const result = await signInWithPopup(auth, googleProvider);
@@ -96,8 +116,36 @@ export async function loginWithGoogle() {
       console.warn('Google sign-in was dismissed or cancelled by user.');
       return null;
     }
-    console.error('Google sign-in error:', error?.message || error);
-    return null;
+
+    // If popup is blocked or fails on custom domains (like Vercel), fallback to redirect
+    console.warn('Popup login failed, attempting redirect login fallback:', error?.message || error);
+    try {
+      await signInWithRedirect(auth, googleProvider);
+      return null; // Will resolve after redirect return
+    } catch (redirectErr: any) {
+      console.error('Google redirect sign-in error:', redirectErr?.message || redirectErr);
+      return null;
+    }
+  }
+}
+
+export async function loginWithEmail(email: string, pass: string) {
+  try {
+    const res = await signInWithEmailAndPassword(auth, email, pass);
+    return res.user;
+  } catch (err: any) {
+    console.error('Email sign-in error:', err);
+    throw err;
+  }
+}
+
+export async function registerWithEmail(email: string, pass: string) {
+  try {
+    const res = await createUserWithEmailAndPassword(auth, email, pass);
+    return res.user;
+  } catch (err: any) {
+    console.error('Email registration error:', err);
+    throw err;
   }
 }
 

@@ -18,6 +18,7 @@ import { PACKS } from '../data/toolsData';
 import { DailyOrderVolumeChart } from './DailyOrderVolumeChart';
 import { SalesAnalytics } from './SalesAnalytics';
 import { AdminTicketsManager } from './AdminTicketsManager';
+import { UserEntitlementsManager } from './UserEntitlementsManager';
 import {
   ShieldCheck,
   ShieldAlert,
@@ -38,6 +39,7 @@ import {
   ArrowRight,
   Sparkles,
   LifeBuoy,
+  KeyRound,
 } from 'lucide-react';
 
 export const SalesLog: React.FC = () => {
@@ -52,7 +54,7 @@ export const SalesLog: React.FC = () => {
   const [rejectModalOrder, setRejectModalOrder] = useState<Order | null>(null);
   const [rejectReason, setRejectReason] = useState('Payment reference could not be verified in bank statement.');
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
-  const [adminTab, setAdminTab] = useState<'orders' | 'tickets'>('orders');
+  const [adminTab, setAdminTab] = useState<'orders' | 'users' | 'tickets'>('orders');
   const [chartView, setChartView] = useState<'volume' | 'revenue'>('volume');
 
   // Mark Order as Completed
@@ -508,6 +510,18 @@ export const SalesLog: React.FC = () => {
         </button>
 
         <button
+          onClick={() => setAdminTab('users')}
+          className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap shrink-0 transition-all flex items-center gap-2 cursor-pointer ${
+            adminTab === 'users'
+              ? 'bg-blue-600 text-white shadow-xs'
+              : 'text-slate-600 hover:text-slate-900'
+          }`}
+        >
+          <KeyRound className="w-4 h-4 text-blue-300 shrink-0" />
+          <span>Users & UIDs Control</span>
+        </button>
+
+        <button
           onClick={() => setAdminTab('tickets')}
           className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap shrink-0 transition-all flex items-center gap-2 cursor-pointer ${
             adminTab === 'tickets'
@@ -520,7 +534,9 @@ export const SalesLog: React.FC = () => {
         </button>
       </div>
 
-      {adminTab === 'tickets' ? (
+      {adminTab === 'users' ? (
+        <UserEntitlementsManager />
+      ) : adminTab === 'tickets' ? (
         <AdminTicketsManager />
       ) : (
         <>

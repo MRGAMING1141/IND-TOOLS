@@ -26,10 +26,9 @@ service cloud.firestore {
     // Authorized Admins for Sales Log and Entitlement Approvals
     function isAdmin() {
       return isSignedIn() &&
-        request.auth.token.email_verified == true &&
         (
-          request.auth.token.email.lower() == 'janvirajpurohit491@gmail.com' ||
-          request.auth.token.email.lower() == 'lasthope.mr@gmail.com'
+          request.auth.token.email == 'janvirajpurohit491@gmail.com' ||
+          request.auth.token.email == 'lasthope.mr@gmail.com'
         );
     }
 
@@ -40,7 +39,7 @@ service cloud.firestore {
     // Validation helper for Orders
     function isValidOrder(data) {
       return data.keys().hasAll(['userId', 'userEmail', 'packs', 'amount', 'payerName', 'status', 'createdAt']) &&
-        data.userId is string && data.userId == request.auth.uid &&
+        data.userId is string && data.userId.size() <= 128 &&
         data.userEmail is string && data.userEmail.size() <= 256 &&
         data.packs is list && data.packs.size() > 0 && data.packs.size() <= 10 &&
         data.amount is number && data.amount >= 0 &&
@@ -68,6 +67,25 @@ service cloud.firestore {
         (!('priority' in data) || data.priority in ['low', 'medium', 'high', 'urgent']) &&
         (!('orderId' in data) || (data.orderId is string && data.orderId.size() <= 128)) &&
         (!('responses' in data) || (data.responses is list && data.responses.size() <= 100));
+    }
+
+    function isValidUserProfile(data) {
+      return data.keys().hasAll(['uid', 'specialUid', 'email']) &&
+        data.uid is string && data.uid.size() <= 128 &&
+        data.specialUid is string && data.specialUid.size() <= 64 &&
+        data.email is string && data.email.size() <= 256;
+    }
+
+    // Users Profile Collection
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isAdmin() || isOwner(userId));
+      allow list: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+
+      allow create, update: if isValidId(userId) &&
+        (isAdmin() || (isOwner(userId) && incoming().uid == request.auth.uid)) &&
+        isValidUserProfile(incoming());
+
+      allow delete: if isValidId(userId) && isAdmin();
     }
 
     // Orders Collection
