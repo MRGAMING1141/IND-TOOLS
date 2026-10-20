@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { loginWithEmail, registerWithEmail } from '../firebase';
-import { X, Mail, Lock, ShieldCheck, ArrowRight, AlertCircle, Zap, UserCheck } from 'lucide-react';
+import { X, Mail, Lock, ShieldCheck, ArrowRight, AlertCircle } from 'lucide-react';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -9,7 +9,7 @@ interface AuthModalProps {
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
-  const { user, loginAsDemoAdmin, loginAsGuest } = useAuth();
+  const { user } = useAuth();
   const [mode, setMode] = useState<'signin' | 'register'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -50,10 +50,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       }
       onClose();
     } catch (err: any) {
-      setError(
-        err?.message ||
-          'Authentication failed (Email/Password auth may not be enabled in Firebase console). Use Instant Demo Mode below!'
-      );
+      const errCode = err?.code || '';
+      const errMsg = err?.message || '';
+      if (errCode === 'auth/email-already-in-use' || errMsg.includes('email-already-in-use')) {
+        setError('This email address is already registered. Please switch to "Sign In" to access your account.');
+      } else if (errCode === 'auth/wrong-password' || errCode === 'auth/user-not-found' || errMsg.includes('wrong-password') || errMsg.includes('user-not-found') || errMsg.includes('invalid-credential')) {
+        setError('Invalid email or password. Please check your credentials or create an account.');
+      } else if (errCode === 'auth/operation-not-allowed' || errMsg.includes('operation-not-allowed')) {
+        setError('Email/Password authentication is currently disabled in your Firebase console. Please enable it under Firebase Console -> Authentication -> Sign-in method.');
+      } else {
+        setError(errMsg || 'Authentication failed. Please check your credentials or network.');
+      }
     } finally {
       setLoading(false);
     }
@@ -77,7 +84,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
             </div>
             <div>
               <h3 className="text-sm font-bold text-slate-900 tracking-tight">IND HUB Authentication</h3>
-              <p className="text-[11px] text-slate-500">Instant Access & Cloud Sync</p>
+              <p className="text-[11px] text-slate-500">Secure Email Login & Cloud Sync</p>
             </div>
           </div>
 
@@ -93,41 +100,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         {/* Body */}
         <div className="p-6 space-y-4">
           {error && (
-            <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-start gap-2.5">
+            <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-start gap-2.5 leading-relaxed">
               <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
           )}
-
-          {/* Instant Bypass Buttons for zero-config testing */}
-          <div className="space-y-2 p-3.5 rounded-2xl bg-blue-50/80 border border-blue-200">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-blue-900 mb-2">
-              ⚡ Instant Bypass (No Setup Required)
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <button
-                onClick={loginAsDemoAdmin}
-                className="py-2.5 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer"
-              >
-                <Zap className="w-3.5 h-3.5 text-amber-300" />
-                <span>Demo Admin</span>
-              </button>
-              <button
-                onClick={loginAsGuest}
-                className="py-2.5 px-3 rounded-xl bg-white hover:bg-slate-100 border border-blue-300 text-blue-800 text-xs font-bold flex items-center justify-center gap-1.5 transition-all shadow-xs cursor-pointer"
-              >
-                <UserCheck className="w-3.5 h-3.5" />
-                <span>Guest Mode</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="relative flex items-center justify-center my-2">
-            <div className="border-t border-slate-200 w-full absolute"></div>
-            <span className="bg-white px-3 relative text-[11px] uppercase tracking-wider font-bold text-slate-400">
-              Or Firebase Email Login
-            </span>
-          </div>
 
           {/* Mode Switch Tabs */}
           <div className="flex p-1 rounded-xl bg-slate-100 border border-slate-200 text-xs font-semibold">
@@ -183,6 +160,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                 />
               </div>
+              {mode === 'register' && (
+                <p className="text-[10px] text-slate-500 mt-1">Must be at least 6 characters long.</p>
+              )}
             </div>
 
             <button
