@@ -1,0 +1,125 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Primitive Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Authorized Admins for Sales Log and Entitlement Approvals
+    function isAdmin() {
+      return isSignedIn() &&
+        request.auth.token.email_verified == true &&
+        (
+          request.auth.token.email.lower() == 'janvirajpurohit491@gmail.com' ||
+          request.auth.token.email.lower() == 'lasthope.mr@gmail.com'
+        );
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Validation helper for Orders
+    function isValidOrder(data) {
+      return data.keys().hasAll(['userId', 'userEmail', 'packs', 'amount', 'payerName', 'status', 'createdAt']) &&
+        data.userId is string && data.userId == request.auth.uid &&
+        data.userEmail is string && data.userEmail.size() <= 256 &&
+        data.packs is list && data.packs.size() > 0 && data.packs.size() <= 10 &&
+        data.amount is number && data.amount >= 0 &&
+        data.payerName is string && data.payerName.size() <= 128 &&
+        data.status in ['pending', 'approved', 'completed', 'rejected'] &&
+        (!('notes' in data) || (data.notes is string && data.notes.size() <= 500)) &&
+        (!('utr' in data) || (data.utr is string && data.utr.size() <= 128)) &&
+        (!('contact' in data) || (data.contact is string && data.contact.size() <= 128));
+    }
+
+    function isValidEntitlement(data) {
+      return data.keys().hasAll(['userId', 'unlockedPacks', 'updatedAt']) &&
+        data.userId is string && data.userId.size() <= 128 &&
+        data.unlockedPacks is list && data.unlockedPacks.size() <= 20;
+    }
+
+    function isValidTicket(data) {
+      return data.keys().hasAll(['userId', 'userEmail', 'subject', 'category', 'message', 'status', 'createdAt']) &&
+        data.userId is string && data.userId.size() <= 128 &&
+        data.userEmail is string && data.userEmail.size() <= 256 &&
+        data.subject is string && data.subject.size() > 0 && data.subject.size() <= 200 &&
+        data.category in ['activation', 'order', 'bug', 'script_request', 'other'] &&
+        data.message is string && data.message.size() > 0 && data.message.size() <= 2000 &&
+        data.status in ['open', 'in_progress', 'resolved', 'closed'] &&
+        (!('priority' in data) || data.priority in ['low', 'medium', 'high', 'urgent']) &&
+        (!('orderId' in data) || (data.orderId is string && data.orderId.size() <= 128)) &&
+        (!('responses' in data) || (data.responses is list && data.responses.size() <= 100));
+    }
+
+    // Orders Collection
+    match /orders/{orderId} {
+      allow get: if isValidId(orderId) && (isAdmin() || (isSignedIn() && existing().userId == request.auth.uid));
+      allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+
+      allow create: if isValidId(orderId) &&
+        isSignedIn() &&
+        incoming().userId == request.auth.uid &&
+        incoming().status == 'pending' &&
+        isValidOrder(incoming());
+
+      allow update: if isValidId(orderId) &&
+        isAdmin() &&
+        incoming().userId == existing().userId &&
+        isValidOrder(incoming());
+
+      allow delete: if isValidId(orderId) && isAdmin();
+    }
+
+    // User Entitlements Collection (active packs per user)
+    match /user_entitlements/{userId} {
+      allow get: if isValidId(userId) && (isAdmin() || isOwner(userId));
+      allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+
+      allow create, update: if isValidId(userId) &&
+        isAdmin() &&
+        isValidEntitlement(incoming());
+
+      allow delete: if isValidId(userId) && isAdmin();
+    }
+
+    // Support Tickets Collection
+    match /tickets/{ticketId} {
+      allow get: if isValidId(ticketId) && (isAdmin() || (isSignedIn() && existing().userId == request.auth.uid));
+      allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+
+      allow create: if isValidId(ticketId) &&
+        isSignedIn() &&
+        incoming().userId == request.auth.uid &&
+        incoming().status == 'open' &&
+        isValidTicket(incoming());
+
+      allow update: if isValidId(ticketId) &&
+        isSignedIn() &&
+        (
+          (isAdmin() && isValidTicket(incoming())) ||
+          (existing().userId == request.auth.uid && incoming().userId == existing().userId && isValidTicket(incoming()))
+        );
+
+      allow delete: if isValidId(ticketId) && isAdmin();
+    }
+  }
+}

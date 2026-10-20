@@ -1,0 +1,6 @@
+{
+  "name": "IND HUB — Professional Developer & Creator Suite",
+  "description": "Fast, privacy-focused browser toolkit for developers, creators, Roblox engineers, and gamers with instant pack approval, sales channel, and order management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,75 @@
+{
+  "entities": {
+    "Order": {
+      "title": "Order",
+      "description": "Customer purchase order for tool packs",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "userEmail": { "type": "string", "maxLength": 256 },
+        "userName": { "type": "string", "maxLength": 128 },
+        "packs": { "type": "array", "description": "List of pack IDs unlocked by this order" },
+        "packNames": { "type": "string", "maxLength": 256 },
+        "amount": { "type": "number" },
+        "currency": { "type": "string", "maxLength": 10 },
+        "payerName": { "type": "string", "maxLength": 128 },
+        "utr": { "type": "string", "maxLength": 128 },
+        "contact": { "type": "string", "maxLength": 128 },
+        "notes": { "type": "string", "maxLength": 500 },
+        "status": { "type": "string", "enum": ["pending", "approved", "completed", "rejected"], "maxLength": 32 },
+        "rejectionReason": { "type": "string", "maxLength": 500 },
+        "approvedBy": { "type": "string", "maxLength": 256 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "userEmail", "packs", "amount", "payerName", "status", "createdAt"]
+    },
+    "UserEntitlement": {
+      "title": "UserEntitlement",
+      "description": "Active pack entitlements granted to a user",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "userEmail": { "type": "string", "maxLength": 256 },
+        "unlockedPacks": { "type": "array", "description": "Array of approved pack IDs" },
+        "approvedOrders": { "type": "array", "description": "Order IDs granting these packs" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "unlockedPacks", "updatedAt"]
+    },
+    "Ticket": {
+      "title": "Ticket",
+      "description": "Customer support and inquiry ticket",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "userEmail": { "type": "string", "maxLength": 256 },
+        "userName": { "type": "string", "maxLength": 128 },
+        "subject": { "type": "string", "maxLength": 200 },
+        "category": { "type": "string", "enum": ["activation", "order", "bug", "script_request", "other"], "maxLength": 64 },
+        "orderId": { "type": "string", "maxLength": 128 },
+        "message": { "type": "string", "maxLength": 2000 },
+        "status": { "type": "string", "enum": ["open", "in_progress", "resolved", "closed"], "maxLength": 32 },
+        "priority": { "type": "string", "enum": ["low", "medium", "high", "urgent"], "maxLength": 32 },
+        "responses": { "type": "array", "description": "List of responses between user and admin" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "userEmail", "subject", "category", "message", "status", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Collection of customer purchase orders"
+    },
+    "/user_entitlements/{userId}": {
+      "schema": { "$ref": "#/entities/UserEntitlement" },
+      "description": "Per-user unlocked feature packs"
+    },
+    "/tickets/{ticketId}": {
+      "schema": { "$ref": "#/entities/Ticket" },
+      "description": "Customer support and inquiry tickets"
+    }
+  }
+}
