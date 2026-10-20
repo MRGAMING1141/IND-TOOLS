@@ -16,6 +16,9 @@ interface AuthContextType {
   hasAccessToPack: (pack?: PackId) => boolean;
   signIn: () => Promise<User | undefined>;
   signOut: () => Promise<void>;
+  loginUser: (u: any) => void;
+  authModalOpen: boolean;
+  setAuthModalOpen: (open: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -28,6 +31,9 @@ const AuthContext = createContext<AuthContextType>({
   hasAccessToPack: () => false,
   signIn: async () => undefined,
   signOut: async () => {},
+  loginUser: () => {},
+  authModalOpen: false,
+  setAuthModalOpen: () => {},
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -107,7 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    if (user.uid.startsWith('local_')) {
+    if (user.uid?.startsWith?.('local_')) {
       if (isUserAdmin(user.email)) {
         setEntitlement({
           userId: user.uid,
@@ -155,6 +161,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return undefined;
   };
 
+  const loginUser = (u: any) => {
+    setUser(u);
+    if (isUserAdmin(u.email)) {
+      setEntitlement({
+        userId: u.uid,
+        userEmail: u.email || '',
+        unlockedPacks: ['elite', 'pro', 'dev', 'roblox', 'creator', 'gaming'],
+      });
+    }
+    setAuthModalOpen(false);
+  };
+
   const signOut = async () => {
     localStorage.removeItem('ind_local_user');
     try {
@@ -178,6 +196,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         hasAccessToPack,
         signIn,
         signOut,
+        loginUser,
+        authModalOpen,
+        setAuthModalOpen,
       }}
     >
       {children}

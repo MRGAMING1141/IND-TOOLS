@@ -9,7 +9,7 @@ interface AuthModalProps {
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
-  const { user } = useAuth();
+  const { user, loginUser } = useAuth();
   const [mode, setMode] = useState<'signin' | 'register'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -43,12 +43,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
     }
     setLoading(true);
     try {
+      let res;
       if (mode === 'signin') {
-        await loginWithEmail(email.trim(), password);
+        res = await loginWithEmail(email.trim(), password);
       } else {
-        await registerWithEmail(email.trim(), password);
+        res = await registerWithEmail(email.trim(), password);
       }
-      onClose();
+      if (res) {
+        loginUser(res);
+      } else {
+        onClose();
+      }
     } catch (err: any) {
       const errCode = err?.code || '';
       const errMsg = err?.message || '';
